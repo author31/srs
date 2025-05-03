@@ -1,39 +1,61 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app.models import Config
-from app.schemas import ConfigUpdate
+from app.schemas import ConfigUpdate, NotionConfig, OpenRouterConfig, TelegramConfig
 from app.database import get_db
+import json
 
 router = APIRouter()
-
 
 def get_config_value(db: Session, key: str) -> str | None:
     config_item = db.query(Config).filter(Config.key == key).first()
     return config_item.value if config_item else None
 
+def set_config_value(db: Session, key: str, value: str | None):
+    db_config = db.query(Config).filter(Config.key == key).first()
+    if db_config:
+        db_config.value = value
+    else:
+        db_config = Config(key=key, value=value)
+        db.add(db_config)
 
 @router.get("/config", response_model=dict)
 async def get_config(db: Session = Depends(get_db)):
-    return {
-        "notion_api_key": get_config_value(db, "notion_api_key"),
-        "notion_database_id": get_config_value(db, "notion_database_id"),
-        "openrouter_api_key": get_config_value(db, "openrouter_api_key"),
-        "telegram_bot_token": get_config_value(db, "telegram_bot_token"),
-        "telegram_chat_id": get_config_value(db, "telegram_chat_id"),
-    }
+    notion_config = NotionConfig()
+    openrouter_config = OpenRouterConfig()
+    telegram_config = TelegramConfig()
 
+    for key in notion_config.dict().keys():
+        value = get_config_value(db, f"notion_{key}")
+        setattr(notion_config, key, value)
+
+    for key in openrouter_config.dict().keys():
+        value = get_config_value(db, f"openrouter_{key}")
+        setattr(openrouter_config, key, value)
+
+    for key in telegram_config.dict().keys():
+        value = get_config_value(db, f"telegram_{key}")
+        setattr(telegram_config, key, value)
+
+    return {
+        "notion": notion_config,
+        "openrouter": openrouter_config,
+        "telegram": telegram_config,
+    }
 
 @router.post("/config")
 async def update_config(config: ConfigUpdate, db: Session = Depends(get_db)):
-    config_dict = config.dict()
-    for key, value in config_dict.items():
-        if value is None:
-            continue
-        db_config = db.query(Config).filter(Config.key == key).first()
-        if db_config:
-            db_config.value = value
-            continue
-        db_config = Config(key=key, value=value)
-        db.add(db_config)
+    if config.notion:
+        for key, value in config.notion.dict().items():
+            set_config_value(db, f"notion_{key}", value)
+
+    if config.openrouter:
+        for key, value in config.openrouter.dict().items():
+            set_config_value(db, f"openrouter_{key}", value)
+
+    if config.telegram:
+        for key, value in config.telegram.dict().items():
+            set_config_value(db, f"telegram_{key}", value)
+
     db.commit()
     return {"message": "Configuration updated successfully"}
