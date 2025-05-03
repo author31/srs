@@ -1,5 +1,14 @@
 .aider*
-node_modules/
 .env
-srs_data.sqlite
 *.log
+
+.local/
+__pycache__/
+*.py[cod]
+
+.tox/
+.coverage
+.cache
+nosetests.xml
+coverage.xml
+
