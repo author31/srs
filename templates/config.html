@@ -21,9 +21,9 @@
     <div class="container">
         <h1 class="mb-4">LLM Flashcard Generator Configuration</h1>
 
-        {% if message %}
+        {% if request.query_params.get('message') %}
         <div class="alert alert-info" role="alert">
-            {{ message }}
+            {{ request.query_params.get('message') }}
         </div>
         {% endif %}
 

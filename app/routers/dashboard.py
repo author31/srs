@@ -11,7 +11,7 @@ templates = Jinja2Templates(directory="templates")
 
 
 @router.get("/dashboard", response_class=HTMLResponse)
-async def get_config_page(request: Request, db: Session = Depends(get_db)):
+async def get_dashboard(request: Request, db: Session = Depends(get_db)):
     config = await get_config(db)
     return templates.TemplateResponse(
         "config.html", {"request": request, "config": config}

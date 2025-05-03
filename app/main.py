@@ -6,7 +6,7 @@ from app.routers import config, dashboard
 app = FastAPI()
 
 # Mount static files
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/static", StaticFiles(directory="templates/static"), name="static")
 
 # Set up templates
 templates = Jinja2Templates(directory="templates")
@@ -14,6 +14,7 @@ templates = Jinja2Templates(directory="templates")
 # Include routers
 app.include_router(config.router, prefix="/api", tags=["config"])
 app.include_router(dashboard.router)
+
 
 @app.get("/")
 async def root():
