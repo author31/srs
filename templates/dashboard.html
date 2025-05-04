@@ -40,24 +40,17 @@
                         </tr>
                     </thead>
                     <tbody>
+                        {% for flashcard in flashcards %}
                         <tr>
-                            <td>Placeholder Question 1</td>
-                            <td>Placeholder Answer 1</td>
-                            <td>Notion</td>
+                            <td>{{ flashcard.question }}</td>
+                            <td>{{ flashcard.answer }}</td>
+                            <td>{{ flashcard.knowledge_source_type }}</td>
                             <td>
                                 <button class="btn btn-sm btn-warning">Edit</button>
                                 <button class="btn btn-sm btn-danger">Remove</button>
                             </td>
                         </tr>
-                        <tr>
-                            <td>Placeholder Question 2</td>
-                            <td>Placeholder Answer 2</td>
-                            <td>Notion</td>
-                            <td>
-                                <button class="btn btn-sm btn-warning">Edit</button>
-                                <button class="btn btn-sm btn-danger">Remove</button>
-                            </td>
-                        </tr>
+                        {% endfor %}
                     </tbody>
                 </table>
             </div>
