@@ -25,7 +25,6 @@ dependencies = [
 venvPath = "."
 venv = ".venv"
 
-# Optional: Add Ruff and Isort configuration if not present
 [tool.ruff]
 line-length = 88
 select = ["E", "W", "F", "I", "UP", "PL", "T20"] # Added I for isort, T20 for print

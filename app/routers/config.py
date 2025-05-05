@@ -58,15 +58,15 @@ async def update_config(
 
     if config_update.notion:
         for key, value in config_update.notion.model_dump().items():
-            config_service.set_config_value(db, f"notion_{key}", value)
+            config_service.set_config_value(db, key, value)
 
     if config_update.openrouter:
         for key, value in config_update.openrouter.model_dump().items():
-            config_service.set_config_value(db, f"openrouter_{key}", value)
+            config_service.set_config_value(db, key, value)
 
     if config_update.telegram:
         for key, value in config_update.telegram.model_dump().items():
-            config_service.set_config_value(db, f"telegram_{key}", value)
+            config_service.set_config_value(db, key, value)
 
     db.commit()
 

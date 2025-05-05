@@ -1,6 +1,4 @@
 import logging
-import asyncio
-import traceback
 from telegram import Update
 from telegram.ext import (
     Application,
@@ -23,12 +21,12 @@ from app.telegram_bot.handlers import (
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     level=logging.INFO,
-    handlers=[logging.StreamHandler()] # Log to console
+    handlers=[logging.StreamHandler()]
 )
 # Reduce verbosity from libraries
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logging.getLogger("telegram.vendor.ptb_urllib3.urllib3").setLevel(logging.WARNING)
-logging.getLogger("telegram.ext").setLevel(logging.INFO) # Can be DEBUG for more PTB info
+logging.getLogger("telegram.ext").setLevel(logging.INFO)
 
 logger = logging.getLogger(__name__)
 
@@ -70,15 +68,8 @@ def run_bot():
         logger.critical("CRITICAL: Telegram Bot Token not found in configuration. Bot cannot start.")
         return # Exit if no token
     if not chat_id_str:
-        logger.warning("WARNING: Telegram Chat ID not found in configuration. Bot will run but only respond if configured later.")
-        # Allow running without chat_id, handlers will prevent responses until configured.
-    else:
-        try:
-            int(chat_id_str) # Validate it's a number
-            logger.info("Telegram Bot Token and Chat ID found in configuration.")
-        except ValueError:
-             logger.error(f"ERROR: Invalid Telegram Chat ID configured: {chat_id_str}. Bot will run but handlers will fail chat check.")
-
+        logger.critical("CRITICAL: Telegram Chat ID not found in configuration. Bot will run but only respond if configured later.")
+        return # Exit if no token
 
     try:
         application = Application.builder().token(token).build()
@@ -91,9 +82,6 @@ def run_bot():
         # Handler for unknown commands - filters.COMMAND ensures it only catches commands
         application.add_handler(MessageHandler(filters.COMMAND, unknown_command))
 
-        # Register error handler
-        application.add_error_handler(error_handler)
-
         # Start the Bot using polling
         logger.info("Starting bot polling...")
         application.run_polling(allowed_updates=Update.ALL_TYPES) # Listen for all update types
@@ -103,8 +91,5 @@ def run_bot():
 
 
 if __name__ == "__main__":
-    # This allows running the bot directly, e.g., `python -m app.telegram_bot.main`
-    # Ensure PYTHONPATH is set correctly or run from the project root.
-    # In production, you might run this via systemd or another process manager.
     run_bot()
 

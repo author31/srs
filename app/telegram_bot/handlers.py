@@ -2,17 +2,14 @@ import logging
 from telegram import Update
 from telegram.ext import ContextTypes
 from sqlalchemy.orm import Session
-from app.database import SessionLocal, get_db # Use get_db if integrating with FastAPI context later
+from app.database import SessionLocal
 from app.services import flashcard_service, config_service
 
 logger = logging.getLogger(__name__)
 
-# --- Helper Functions ---
 
 def get_db_session() -> Session:
-    """Creates a new database session. Replace with get_db if needed."""
-    # In a standalone script or simple bot polling, creating a session per request is okay.
-    # If integrating tightly with FastAPI, dependency injection (Depends(get_db)) is better.
+    """Creates a new database session"""
     return SessionLocal()
 
 def format_flashcard(flashcard) -> str:
@@ -105,12 +102,13 @@ async def summary_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             else:
                 response_message += card_text
 
-        if response_message: # Send the last batch
+        if response_message: 
              await update.message.reply_text(response_message.strip())
 
     except Exception as e:
         logger.error(f"Error processing /summary command for period '{period}': {e}", exc_info=True)
         await update.message.reply_text("An error occurred while fetching the summary. Please check the logs.")
+
     finally:
         db.close()
 
