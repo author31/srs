@@ -28,7 +28,8 @@ app.include_router(config.router, prefix="/api", tags=["config"])
 app.include_router(dashboard.router)
 
 
+from fastapi.responses import RedirectResponse
+
 @app.get("/")
 async def root():
-    # TODO: redirect /dashboard
-    return {"message": "SRS Flashcard Generator & Telegram Bot"}
+    return RedirectResponse(url="/dashboard")

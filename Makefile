@@ -1,22 +1,37 @@
-@VENV_DIR=".venv/bin/python"
+# Makefile for managing the SRS Flashcard Generator project
 
+VENV_DIR=".venv/bin"
+PYTHON="$(VENV_DIR)/python"
+PIP="$(VENV_DIR)/pip"
+
+# Install uv, a fast Python package installer and resolver
 install-uv:
 	curl -LsSf https://astral.sh/uv/install.sh | sh
 
+# Create a virtual environment
 venv:
-	uv venv .venv 
+	uv venv .venv
 
-dep: 
+# Install dependencies from pyproject.toml
+dep: venv
+	$(PIP) install -U pip
 	uv sync
 
-run-dev:
-	fastapi dev app/main.py
+# Run the FastAPI development server
+run-dev: dep
+	$(PYTHON) -m fastapi dev app/main.py
 
-launch-telegram-bot:
-	@VENV_DIR python -m app.telegram_bot.main
+# Launch the Telegram bot
+launch-telegram-bot: dep
+	$(PYTHON) -m app.telegram_bot.main
 
-lintfix:
-	ruff
-	isort
+# Lint the codebase for style and errors
+lint: dep
+	$(PYTHON) -m ruff check .
 
-.PHONY: install-uv venv dep run-dev launch-telegram-bot lintfix
+# Fix linting issues automatically
+lintfix: dep
+	$(PYTHON) -m ruff check --fix .
+	$(PYTHON) -m isort .
+
+.PHONY: install-uv venv dep run-dev launch-telegram-bot lint lintfix
