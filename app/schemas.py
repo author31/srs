@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 
+
 class NotionConfig(BaseModel):
     notion_api_key: str | None = None
     notion_database_id: str | None = None

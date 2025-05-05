@@ -13,6 +13,29 @@ This application automatically generates flashcards from knowledge sources (like
 *   Scheduled delivery of new flashcards via Telegram.
 *   Telegram commands (`/summary`, `/random`) to retrieve flashcards.
 
+## First-Time Setup
+
+To set up the application for the first time, follow these steps:
+
+1. **Install uv (if not already installed):**
+   - Run `make install-uv` to install uv, a fast Python package installer and resolver.
+
+2. **Create a Virtual Environment:**
+   - Run `make venv` to create a virtual environment using uv.
+
+3. **Install Dependencies:**
+   - Run `make dep` to install the required dependencies from pyproject.toml into the virtual environment.
+
+4. **Run the Development Server:**
+   - Run `make run-dev` to start the FastAPI development server for the web dashboard.
+
+5. **Launch the Telegram Bot:**
+   - Run `make launch-telegram-bot` to start the Telegram bot in a separate terminal or background process.
+
+6. **Linting and Code Style:**
+   - Run `make lint` to check the codebase for style and errors.
+   - Run `make lintfix` to automatically fix linting issues where possible.
+
 ## Setting Up a Telegram Bot
 
 To set up the Telegram bot for this application, follow these steps:

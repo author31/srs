@@ -1,9 +1,11 @@
 import logging
+
+from sqlalchemy.orm import Session
 from telegram import Update
 from telegram.ext import ContextTypes
-from sqlalchemy.orm import Session
+
 from app.database import SessionLocal
-from app.services import flashcard_service, config_service
+from app.services import config_service, flashcard_service
 
 logger = logging.getLogger(__name__)
 
@@ -102,7 +104,7 @@ async def summary_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             else:
                 response_message += card_text
 
-        if response_message: 
+        if response_message:
              await update.message.reply_text(response_message.strip())
 
     except Exception as e:

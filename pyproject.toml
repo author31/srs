@@ -28,7 +28,8 @@ venv = ".venv"
 [tool.ruff]
 line-length = 88
 select = ["E", "W", "F", "I", "UP", "PL", "T20"] # Added I for isort, T20 for print
-ignore = ["E501"] # Ignore line length errors, handled by formatter
+ignore = ["E501", "PLR0913", "E402"] # Ignore line length errors, handled by formatter
+
 
 [tool.ruff.format]
 quote-style = "double"

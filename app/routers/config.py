@@ -1,11 +1,12 @@
-from fastapi import APIRouter, Depends, Form
-from sqlalchemy.orm import Session
-from fastapi.responses import RedirectResponse
 from urllib.parse import urlencode
 
-from app.services import config_service
+from fastapi import APIRouter, Depends, Form
+from fastapi.responses import RedirectResponse
+from sqlalchemy.orm import Session
+
 from app.database import get_db
 from app.schemas import ConfigUpdate, NotionConfig, OpenRouterConfig, TelegramConfig
+from app.services import config_service
 
 router = APIRouter()
 

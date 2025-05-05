@@ -30,6 +30,7 @@ app.include_router(dashboard.router)
 
 from fastapi.responses import RedirectResponse
 
+
 @app.get("/")
 async def root():
     return RedirectResponse(url="/dashboard")

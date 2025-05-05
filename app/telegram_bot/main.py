@@ -1,19 +1,20 @@
 import logging
+
 from telegram import Update
 from telegram.ext import (
     Application,
     CommandHandler,
+    ContextTypes,
     MessageHandler,
     filters,
-    ContextTypes,
 )
 
 from app.database import SessionLocal
 from app.services import config_service
 from app.telegram_bot.handlers import (
+    random_command,
     start_command,
     summary_command,
-    random_command,
     unknown_command,
 )
 

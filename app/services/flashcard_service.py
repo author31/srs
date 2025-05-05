@@ -1,9 +1,8 @@
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import func, update
 from sqlalchemy.orm import Session
-from sqlalchemy.sql.expression import text # Keep for potential raw SQL like RANDOM()
 
 from app.models import Flashcard
 
@@ -61,7 +60,7 @@ def get_sent_flashcards_by_period(
         A list of Flashcard objects. Returns empty list if period is invalid or no cards found.
     """
     logger.info(f"Querying sent flashcards for period: {period}")
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     start_date = None
 
     if period == "today":

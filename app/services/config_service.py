@@ -1,5 +1,6 @@
-from app.models import Config
 from sqlalchemy.orm import Session
+
+from app.models import Config
 from app.schemas import NotionConfig, OpenRouterConfig, TelegramConfig
 
 
