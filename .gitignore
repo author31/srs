@@ -1,5 +1,7 @@
+.git
 .aider*
 .env
+.venv
 *.log
 
 .local/

@@ -1,14 +1,20 @@
-from fastapi import FastAPI
-from fastapi.templating import Jinja2Templates
-from fastapi.staticfiles import StaticFiles
-from app.routers import config, dashboard
-from app.models import Base
-from app.database import engine
 from contextlib import asynccontextmanager
+from pathlib import Path
+
+from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+
+from app.config import LOCAL_DIR
+from app.database import engine
+from app.models import Base
+from app.routers import config, dashboard
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    Path(LOCAL_DIR).mkdir(exist_ok=True)
+
     Base.metadata.create_all(engine)
     yield
 
