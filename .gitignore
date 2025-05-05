@@ -3,6 +3,7 @@
 .env
 .venv
 *.log
+logs/
 
 .local/
 __pycache__/
@@ -14,3 +15,5 @@ __pycache__/
 nosetests.xml
 coverage.xml
 
+# Pyright cache
+.pyright_cache/
