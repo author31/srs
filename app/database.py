@@ -1,5 +1,6 @@
 import os
 
+from sqlalchemy.orm import Session
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -19,3 +20,7 @@ def get_db():
         yield db
     finally:
         db.close()
+
+def get_db_session() -> Session:
+    """Creates a new database session"""
+    return SessionLocal()

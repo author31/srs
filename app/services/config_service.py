@@ -13,9 +13,9 @@ def set_config_value(db: Session, key: str, value: str | None):
     db_config = db.query(Config).filter(Config.key == key).first()
     if db_config:
         db_config.value = value
-    else:
-        db_config = Config(key=key, value=value)
-        db.add(db_config)
+        return
+    db_config = Config(key=key, value=value)
+    db.add(db_config)
 
 
 def get_config(db: Session):
@@ -24,15 +24,15 @@ def get_config(db: Session):
     telegram_config = TelegramConfig()
 
     for key in notion_config.model_dump().keys():
-        value = get_config_value(db, f"notion_{key}")
+        value = get_config_value(db, key)
         setattr(notion_config, key, value)
 
     for key in openrouter_config.model_dump().keys():
-        value = get_config_value(db, f"openrouter_{key}")
+        value = get_config_value(db, key)
         setattr(openrouter_config, key, value)
 
     for key in telegram_config.model_dump().keys():
-        value = get_config_value(db, f"telegram_{key}")
+        value = get_config_value(db, key)
         setattr(telegram_config, key, value)
 
     return {

@@ -1,18 +1,14 @@
 import logging
 
-from sqlalchemy.orm import Session
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from app.database import SessionLocal
+from app.database import get_db_session
 from app.services import config_service, flashcard_service
 
 logger = logging.getLogger(__name__)
 
 
-def get_db_session() -> Session:
-    """Creates a new database session"""
-    return SessionLocal()
 
 def format_flashcard(flashcard) -> str:
     """Formats a flashcard object into a string for Telegram."""
