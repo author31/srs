@@ -60,5 +60,40 @@ To set up the Telegram bot for this application, follow these steps:
 4. **Running the Bot:**
    - Ensure the application is running, and the bot will start polling for updates and respond to commands like `/start`, `/summary`, and `/random`.
 
+## Testing
+
+This project includes integration tests for the Notion API and related services. These tests ensure that the application correctly interacts with external APIs and manages data in the database.
+
+### Prerequisites
+- Ensure you have completed the "First-Time Setup" steps to install dependencies.
+- Install any additional testing dependencies if not already included, such as `pytest` and `pytest-asyncio`
+
+### Setting Up Test Environment
+- Create a file named `.env.integration.test` in the root of the project.
+- Add the following environment variables to `.env.integration.test`. Replace the placeholders with your actual values:
+  ```
+  NOTION_API_KEY=your_notion_api_key_here
+  TEST_NOTION_PAGE_ID=your_test_page_id_here
+  TEST_NOTION_DATABASE_ID=your_test_database_id_here
+  ```
+  - These variables are required for the tests to run without skipping. The `NOTION_API_KEY` should be a valid key from your Notion account.
+
+### Running the Tests
+- Execute the tests using pytest:
+  ```
+  pytest tests/
+  ```
+- To enable debug logging, set the `DEBUG` environment variable to `True` before running tests:
+  ```
+  DEBUG=True pytest tests/
+  ```
+- This will run the asynchronous tests and display detailed logs if configured.
+
+### Notes
+- Tests are located in the `tests/` directory.
+- They use pytest-asyncio for handling asynchronous code.
+- If tests are skipped, check your `.env.integration.test` file for missing variables.
+- Run tests in your virtual environment to avoid conflicts.
+
 ## Project Structure
 
