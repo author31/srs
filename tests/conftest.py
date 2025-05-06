@@ -1,19 +1,26 @@
-import os
 import logging
+import os
+
 import pytest
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import Session, sessionmaker
+from app.models import Base
 
-# Load test environment variables
 load_dotenv(dotenv_path=".env.integration.test")
 
-TEST_DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///.local/test_db.sqlite3")
-# Ensure the .local directory exists
-os.makedirs(".local", exist_ok=True)
+TEST_DATABASE_URL = "sqlite:///.local/test_flashcards.db"
 
-test_engine = create_engine(TEST_DATABASE_URL, echo=False)
+test_engine = create_engine(
+    TEST_DATABASE_URL,
+    connect_args={"check_same_thread": False} if "sqlite" in TEST_DATABASE_URL else {},
+)
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
+
+@pytest.fixture(scope="session")
+def init_db_tables():
+    Base.metadata.create_all(test_engine)
+    yield
 
 # Fixture to provide a test database session
 @pytest.fixture(scope="function")
@@ -25,7 +32,6 @@ def db_session():
 
     yield session
 
-    # Rollback and close connection
     session.close()
     transaction.rollback()
     connection.close()
@@ -41,7 +47,7 @@ def override_get_db_session(monkeypatch, db_session):
         return db_session  # Return the managed session
 
     try:
-        monkeypatch.setattr("app.knowledge_sources.notion.service.get_db_session", mock_get_db_session)
+        monkeypatch.setattr("app.knowledge_sources.notion.notion_service.get_db_session", mock_get_db_session)
     except AttributeError:
         logging.warning("Warning: Could not patch get_db_session in app.knowledge_sources.notion.service.")
 
@@ -54,14 +60,14 @@ def override_get_db_session(monkeypatch, db_session):
 @pytest.fixture(scope="session")
 def notion_test_config():
     api_key = os.getenv("NOTION_API_KEY")
-    page_id = os.getenv("TEST_NOTION_PAGE_ID")
+    database_id = os.getenv("TEST_NOTION_DATABASE_ID")
 
-    if not all([api_key, page_id]):
+    if not all([api_key, database_id]):
         pytest.skip("Skipping Notion integration tests: Required environment variables (.env.integration.test) not set.", allow_module_level=True)
 
     return {
         "api_key": api_key,
-        "page_id": page_id,
+        "page_id": database_id,
         "headers": {
             "Authorization": f"Bearer {api_key}",
             "Notion-Version": "2022-06-28",
@@ -76,7 +82,6 @@ def setup_notion_config_in_db(db_session: Session, notion_test_config):
     from app.services import config_service  # Import locally to use patched DB
 
     try:
-        # Assuming config_service.set_config_value is synchronous
         config_service.set_config_value(db_session, "notion_api_key", notion_test_config["api_key"])
         db_session.commit()  # Commit the change
     except AttributeError as e:
@@ -85,3 +90,11 @@ def setup_notion_config_in_db(db_session: Session, notion_test_config):
     except Exception as e:
         logging.error(f"Unexpected error setting up config: {e}")
         pytest.fail("Failed to set up test configuration.")
+
+def pytest_configure(config):
+    """
+    Configure pytest-asyncio to explicitly set the default event loop scope.
+    This avoids warnings and ensures compatibility with future versions.
+    """
+    config.option.asyncio_default_fixture_loop_scope = "function"  # Set to "function" scope
+
