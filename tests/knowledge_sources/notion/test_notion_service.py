@@ -1,18 +1,27 @@
-import os
 import logging
+import os
+
 import pytest
+
 from app.knowledge_sources.notion import notion_service
-from app.services.config_service import set_config_value, get_config_value
-import pytest_asyncio
+from app.services.config_service import get_config_value, set_config_value
+from tests.conftest import (
+    db_session,
+    init_db_tables,
+    notion_test_config,
+    override_get_db_session,
+)
 
 # Set up DEBUG flag from environment variable
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
+
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 class TestNotionService:
 
     @pytest.mark.asyncio
-    async def test_set_config_value_inserts_api_key(self, db_session, notion_test_config):
+    async def test_set_config_value_inserts_api_key(self, init_db_tables, db_session, notion_test_config):
         """
         Test that the API key can be inserted into the SQLite database.
         """
@@ -28,12 +37,11 @@ class TestNotionService:
             logger.info(f"Inserted and retrieved API key: {retrieved_key}")
 
     @pytest.mark.asyncio
-    @pytest.mark.integration
     async def test_query_notion_database_success(self, db_session, notion_test_config):
         """
         Test successful querying of Notion database with real HTTP response.
         """
-        database_id = notion_test_config["page_id"]  # Use the test page ID from config
+        database_id = notion_test_config["database_id"]  # Use the test page ID from config
         payload = {}  # Example payload
         headers = notion_service.construct_headers()  # This will use the real API key
         result = await notion_service.query_notion_database(database_id, payload, headers=headers)
@@ -44,7 +52,6 @@ class TestNotionService:
         assert result.object == "list", "Expected a list response from Notion API"
 
     @pytest.mark.asyncio
-    @pytest.mark.integration
     async def test_query_notion_database_error(self, db_session):
         """
         Test error handling in query_notion_database with a potentially invalid input.
@@ -58,7 +65,6 @@ class TestNotionService:
         assert result.object == "error", "Expected an error response from Notion API"
 
     @pytest.mark.asyncio
-    @pytest.mark.integration
     async def test_fetch_all_blocks_recursive_success(self, db_session, notion_test_config):
         """
         Test successful recursive fetching of blocks with real HTTP responses.
