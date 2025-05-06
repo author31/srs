@@ -19,17 +19,19 @@ dependencies = [
     "openai>=1.30.1", # For OpenRouter
     "jinja2>=3.1.4", # For FastAPI templates
     "alembic>=1.13.1", # For database migrations (recommended)
+    "pytest>=8.3.5",
+    "dotenv>=0.9.9",
 ]
 
 [tool.pyright]
 venvPath = "."
 venv = ".venv"
+pythonVersion = "3.12"
 
 [tool.ruff]
 line-length = 88
 select = ["E", "W", "F", "I", "UP", "PL", "T20"] # Added I for isort, T20 for print
-ignore = ["E501", "PLR0913", "E402"] # Ignore line length errors, handled by formatter
-
+ignore = ["E501", "PLR0913", "E402", "F401"] # Ignore line length errors, handled by formatter
 
 [tool.ruff.format]
 quote-style = "double"
@@ -40,5 +42,7 @@ line_length = 88
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
-# Add asyncio mode if using async tests
-# asyncio_mode = "auto"
+log_cli = true
+log_cli_level = "INFO"
+log_cli_format = "%(asctime)s [%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)"
+log_cli_date_format = "%Y-%m-%d %H:%M:%S"

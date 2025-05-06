@@ -60,14 +60,16 @@ def override_get_db_session(monkeypatch, db_session):
 @pytest.fixture(scope="session")
 def notion_test_config():
     api_key = os.getenv("NOTION_API_KEY")
+    page_id = os.getenv("TEST_NOTION_PAGE_ID")
     database_id = os.getenv("TEST_NOTION_DATABASE_ID")
 
-    if not all([api_key, database_id]):
+    if not all([api_key, page_id, database_id]):
         pytest.skip("Skipping Notion integration tests: Required environment variables (.env.integration.test) not set.", allow_module_level=True)
 
     return {
         "api_key": api_key,
-        "page_id": database_id,
+        "database_id": database_id,
+        "page_id": page_id,
         "headers": {
             "Authorization": f"Bearer {api_key}",
             "Notion-Version": "2022-06-28",

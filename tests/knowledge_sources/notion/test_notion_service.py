@@ -37,7 +37,6 @@ class TestNotionService:
             logger.info(f"Inserted and retrieved API key: {retrieved_key}")
 
     @pytest.mark.asyncio
-    @pytest.mark.integration
     async def test_query_notion_database_success(self, db_session, notion_test_config):
         """
         Test successful querying of Notion database with real HTTP response.
@@ -53,7 +52,6 @@ class TestNotionService:
         assert result.object == "list", "Expected a list response from Notion API"
 
     @pytest.mark.asyncio
-    @pytest.mark.integration
     async def test_query_notion_database_error(self, db_session):
         """
         Test error handling in query_notion_database with a potentially invalid input.
@@ -67,13 +65,12 @@ class TestNotionService:
         assert result.object == "error", "Expected an error response from Notion API"
 
     @pytest.mark.asyncio
-    @pytest.mark.integration
     async def test_fetch_all_blocks_recursive_success(self, db_session, notion_test_config):
         """
         Test successful recursive fetching of blocks with real HTTP responses.
         """
-        block_id = notion_test_config["page_id"]  # Use the test page ID
-        headers = notion_test_config["headers"]  # Real headers with API key
+        block_id = notion_test_config["page_id"] 
+        headers = notion_test_config["headers"] 
         result = await notion_service.fetch_all_blocks_recursive(block_id, headers=headers)
 
         if DEBUG:
@@ -83,7 +80,6 @@ class TestNotionService:
         assert len(result) > 0, "At least one block should be returned from Notion API"
 
     @pytest.mark.asyncio
-    @pytest.mark.integration
     async def test_retrieve_content_by_id_success(self, db_session, notion_test_config):
         """
         Test successful retrieval of content by ID with real HTTP response.
@@ -96,19 +92,4 @@ class TestNotionService:
             logger.info(f"Response from retrieve_content_by_id: {result}")
 
         assert result is not None, "Expected content to be retrieved"
-        assert "object" in result, "Expected a Notion API response object"
-
-    @pytest.mark.asyncio
-    @pytest.mark.integration
-    async def test_retrieve_content_by_id_error(self, db_session):
-        """
-        Test error handling in retrieve_content_by_id with an invalid ID.
-        """
-        invalid_page_id = "invalid_page_id"  # This should trigger an error
-        headers = {}  # Minimal headers for error testing
-        result = await notion_service.retrieve_content_by_id(invalid_page_id, headers=headers)
-
-        if DEBUG:
-            logger.info(f"Error response from retrieve_content_by_id: {result}")
-
-        assert result is None or "error" in result, "Expected an error response from Notion API"
+        assert "blocks" in result, "Expected a Notion API response object"

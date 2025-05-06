@@ -1,6 +1,7 @@
 .git
 .aider*
 .env
+.env.*
 .venv
 *.log
 logs/
