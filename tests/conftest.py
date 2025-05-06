@@ -20,8 +20,8 @@ TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_
 @pytest_asyncio.fixture(scope="function")
 async def db_session():
     """Provides a clean transactional database session for tests."""
-    connection = await test_engine.connect()
-    transaction = await connection.begin()
+    connection = test_engine.connect()
+    transaction = connection.begin()
     session = TestingSessionLocal(bind=connection)
 
     yield session
