@@ -3,121 +3,259 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LLM Flashcard Generator - Dashboard</title>
+    <title>Flashcard Dashboard</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body {
-            padding: 20px;
-        }
-        .container {
-            max-width: 1200px;
-        }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', path='main.css') }}">
 </head>
 <body>
-    <div class="container">
-        <h1 class="mb-4">LLM Flashcard Generator - Dashboard</h1>
-
+    <div class="container py-4">
+        <h1 class="mb-4">Flashcard Dashboard</h1>
+        
         {% if request.query_params.get('message') %}
-        <div class="alert alert-info" role="alert">
+        <div class="alert alert-success" role="alert">
             {{ request.query_params.get('message') }}
         </div>
         {% endif %}
-
+        
         <div class="row">
-            <div class="col-md-8">
-                <h2>Flashcard Management</h2>
-                <p>Add, edit, or remove flashcards here.</p>
-                <!-- Flashcard Management Placeholder -->
-                <button class="btn btn-primary">Add Flashcard</button>
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Question</th>
-                            <th>Answer</th>
-                            <th>Source</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for flashcard in flashcards %}
-                        <tr>
-                            <td>{{ flashcard.question }}</td>
-                            <td>{{ flashcard.answer }}</td>
-                            <td>{{ flashcard.knowledge_source_type }}</td>
-                            <td>
-                                <button class="btn btn-sm btn-warning">Edit</button>
-                                <button class="btn btn-sm btn-danger">Remove</button>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+            <div class="col-md-6">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="card-title">Configuration</h5>
+                    </div>
+                    <div class="card-body">
+                        <form action="/api/config" method="POST">
+                            <h6 class="mb-3">Notion Configuration</h6>
+                            <div class="mb-3">
+                                <label for="notion_api_key" class="form-label">API Key</label>
+                                <input type="password" class="form-control" id="notion_api_key" name="notion_api_key" value="{{ config.notion.notion_api_key or '' }}">
+                            </div>
+                            <div class="mb-3">
+                                <label for="notion_database_id" class="form-label">Database ID</label>
+                                <input type="text" class="form-control" id="notion_database_id" name="notion_database_id" value="{{ config.notion.notion_database_id or '' }}">
+                            </div>
+                            
+                            <h6 class="mb-3 mt-4">OpenRouter Configuration</h6>
+                            <div class="mb-3">
+                                <label for="openrouter_api_key" class="form-label">API Key</label>
+                                <input type="password" class="form-control" id="openrouter_api_key" name="openrouter_api_key" value="{{ config.openrouter.openrouter_api_key or '' }}">
+                            </div>
+                            
+                            <h6 class="mb-3 mt-4">Telegram Configuration</h6>
+                            <div class="mb-3">
+                                <label for="telegram_bot_token" class="form-label">Bot Token</label>
+                                <input type="password" class="form-control" id="telegram_bot_token" name="telegram_bot_token" value="{{ config.telegram.telegram_bot_token or '' }}">
+                            </div>
+                            <div class="mb-3">
+                                <label for="telegram_chat_id" class="form-label">Chat ID</label>
+                                <input type="text" class="form-control" id="telegram_chat_id" name="telegram_chat_id" value="{{ config.telegram.telegram_chat_id or '' }}">
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary">Save Configuration</button>
+                        </form>
+                    </div>
+                </div>
             </div>
-
-            <div class="col-md-4">
-                <h2>Statistics</h2>
-                <p>View statistics about your flashcards and Telegram messages.</p>
-                <!-- Statistics Placeholder -->
-                <ul class="list-group">
-                    <li class="list-group-item">Total Flashcards: 100</li>
-                    <li class="list-group-item">Telegram Messages Pushed: 50</li>
-                    <li class="list-group-item">Last Push Date: 2024-01-01</li>
-                </ul>
+            
+            <div class="col-md-6">
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">Knowledge Sources</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="fetch-actions">
+                            <button id="fetchBtn" class="btn btn-primary">
+                                Fetch Knowledge
+                                <span class="spinner-border spinner-border-sm loading-spinner" role="status" aria-hidden="true" id="fetchSpinner"></span>
+                            </button>
+                        </div>
+                        
+                        {% if not config.notion.notion_api_key or not config.notion.notion_database_id %}
+                        <div class="config-warning">
+                            <strong>Note:</strong> Notion API key and/or database ID not configured. Please configure them to fetch from Notion.
+                        </div>
+                        {% endif %}
+                        
+                        <div id="fetchResults" class="fetch-results">
+                            <div class="fetch-summary">
+                                <span id="fetchStatus" class="badge status-badge me-2">Waiting</span>
+                                <span id="fetchSummary">No data fetched yet</span>
+                            </div>
+                            
+                            <div id="resultsContainer" class="content-area">
+                                <!-- Results will be populated here via JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title">Flashcards</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive content-area">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Question</th>
+                                        <th>Answer</th>
+                                        <th>Status</th>
+                                        <th>Source</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for card in flashcards %}
+                                    <tr>
+                                        <td>{{ card.question }}</td>
+                                        <td>{{ card.answer }}</td>
+                                        <td>
+                                            <span class="badge {% if card.status == 'pending' %}bg-warning{% elif card.status == 'sent' %}bg-success{% else %}bg-secondary{% endif %}">
+                                                {{ card.status }}
+                                            </span>
+                                        </td>
+                                        <td>{{ card.knowledge_source_type }}</td>
+                                    </tr>
+                                    {% else %}
+                                    <tr>
+                                        <td colspan="4" class="text-center">No flashcards available</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-
-        <hr class="my-4">
-
-        <h2>Configuration</h2>
-        <form method="POST" action="/api/config">
-            <div class="row">
-                <div class="col-md-6">
-                    <h3>Notion Configuration</h3>
-                    <div class="mb-3">
-                        <label for="notion_api_key" class="form-label">Notion API Key</label>
-                        <input type="password" class="form-control" id="notion_api_key" name="notion_api_key"
-                               value="{{ config.notion.notion_api_key if config.notion and config.notion.notion_api_key else '' }}"
-                               placeholder="Enter Notion API Key">
-                    </div>
-                    <div class="mb-3">
-                        <label for="notion_database_id" class="form-label">Notion Database ID</label>
-                        <input type="text" class="form-control" id="notion_database_id" name="notion_database_id"
-                               value="{{ config.notion.notion_database_id if config.notion and config.notion.notion_database_id else '' }}"
-                               placeholder="Enter Notion Database ID">
-                    </div>
-                </div>
-
-                <div class="col-md-6">
-                    <h3>OpenRouter Configuration</h3>
-                    <div class="mb-3">
-                        <label for="openrouter_api_key" class="form-label">OpenRouter API Key</label>
-                        <input type="password" class="form-control" id="openrouter_api_key" name="openrouter_api_key"
-                               value="{{ config.openrouter.openrouter_api_key if config.openrouter and config.openrouter.openrouter_api_key else '' }}"
-                               placeholder="Enter OpenRouter API Key">
-                    </div>
-                </div>
-
-                <div class="col-md-6">
-                    <h3>Telegram Configuration</h3>
-                    <div class="mb-3">
-                        <label for="telegram_bot_token" class="form-label">Telegram Bot Token</label>
-                        <input type="password" class="form-control" id="telegram_bot_token" name="telegram_bot_token"
-                               value="{{ config.telegram.telegram_bot_token if config.telegram and config.telegram.telegram_bot_token else '' }}"
-                               placeholder="Enter Telegram Bot Token">
-                    </div>
-                    <div class="mb-3">
-                        <label for="telegram_chat_id" class="form-label">Telegram Chat ID</label>
-                        <input type="text" class="form-control" id="telegram_chat_id" name="telegram_chat_id"
-                               value="{{ config.telegram.telegram_chat_id if config.telegram and config.telegram.telegram_chat_id else '' }}"
-                               placeholder="Enter Telegram Chat ID">
-                    </div>
-                </div>
-            </div>
-            <button type="submit" class="btn btn-primary">Save Configuration</button>
-        </form>
     </div>
-
+    
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const fetchBtn = document.getElementById('fetchBtn');
+            const fetchSpinner = document.getElementById('fetchSpinner');
+            const fetchResults = document.getElementById('fetchResults');
+            const fetchStatus = document.getElementById('fetchStatus');
+            const fetchSummary = document.getElementById('fetchSummary');
+            const resultsContainer = document.getElementById('resultsContainer');
+            
+            fetchBtn.addEventListener('click', async function() {
+                // Show loading state
+                fetchBtn.disabled = true;
+                fetchSpinner.style.display = 'inline-block';
+                fetchStatus.textContent = 'Fetching...';
+                fetchStatus.className = 'badge status-badge bg-info me-2';
+                fetchResults.style.display = 'block';
+                
+                try {
+                    // Make API call to fetch knowledge
+                    const response = await fetch('/api/fetch');
+                    const data = await response.json();
+                    
+                    // Update status
+                    if (data.overall_status === 'success') {
+                        fetchStatus.textContent = 'Success';
+                        fetchStatus.className = 'badge status-badge status-success me-2';
+                    } else if (data.overall_status === 'partial') {
+                        fetchStatus.textContent = 'Partial Success';
+                        fetchStatus.className = 'badge status-badge status-partial me-2';
+                    } else {
+                        fetchStatus.textContent = 'Error';
+                        fetchStatus.className = 'badge status-badge status-error me-2';
+                    }
+                    
+                    // Render results
+                    renderResults(data);
+                    
+                } catch (error) {
+                    console.error('Error fetching knowledge:', error);
+                    fetchStatus.textContent = 'Error';
+                    fetchStatus.className = 'badge status-badge status-error me-2';
+                    fetchSummary.textContent = 'Failed to fetch: ' + error.message;
+                    resultsContainer.innerHTML = '<div class="alert alert-danger">Failed to fetch data. Please try again.</div>';
+                } finally {
+                    // Reset loading state
+                    fetchBtn.disabled = false;
+                    fetchSpinner.style.display = 'none';
+                }
+            });
+            
+            function renderResults(data) {
+                // Clear previous results
+                resultsContainer.innerHTML = '';
+                
+                // Update summary
+                const sourceCount = data.sources.length;
+                const successCount = data.sources.filter(s => s.status === 'success').length;
+                fetchSummary.textContent = `Fetched from ${successCount}/${sourceCount} sources`;
+                
+                // Render each source
+                data.sources.forEach(source => {
+                    const sourceElement = document.createElement('div');
+                    sourceElement.className = 'card result-card mb-3';
+                    
+                    let sourceContent = '';
+                    if (source.status === 'success') {
+                        const pages = source.data.pages || [];
+                        const totalCount = source.data.total_count || 0;
+                        const fetchedCount = source.data.fetched_count || 0;
+                        
+                        sourceContent = `
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0">${source.name}</h6>
+                                <span class="badge bg-success">Success</span>
+                            </div>
+                            <div class="card-body">
+                                <p class="card-text">
+                                    Fetched ${fetchedCount} pages out of ${totalCount} total
+                                </p>
+                                <div class="list-group">
+                                    ${pages.map((page, index) => `
+                                        <div class="list-group-item">
+                                            <div class="d-flex justify-content-between">
+                                                <h6 class="mb-1">${page.title || 'Untitled'}</h6>
+                                                <small>
+                                                    <a href="#" class="collapse-toggle" 
+                                                       data-bs-toggle="collapse" 
+                                                       data-bs-target="#pageContent${index}">
+                                                        Show Content
+                                                    </a>
+                                                </small>
+                                            </div>
+                                            <p class="mb-1 text-muted">${page.preview || 'No preview available'}</p>
+                                            <div class="collapse mt-2" id="pageContent${index}">
+                                                <pre class="json-content">${JSON.stringify(page.full_content, null, 2)}</pre>
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        sourceContent = `
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0">${source.name}</h6>
+                                <span class="badge bg-danger">Error</span>
+                            </div>
+                            <div class="card-body">
+                                <p class="card-text text-danger">
+                                    ${source.error || 'An unknown error occurred'}
+                                </p>
+                            </div>
+                        `;
+                    }
+                    
+                    sourceElement.innerHTML = sourceContent;
+                    resultsContainer.appendChild(sourceElement);
+                });
+                
+                // If no sources were processed
+                if (sourceCount === 0) {
+                    resultsContainer.innerHTML = '<div class="alert alert-warning">No knowledge sources found or configured.</div>';
+                }
+            }
+        });
+    </script>
 </body>
 </html>

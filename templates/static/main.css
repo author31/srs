@@ -1,0 +1,66 @@
+.content-area {
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.fetch-results {
+    display: none;
+    margin-top: 20px;
+}
+
+.result-card {
+    margin-bottom: 15px;
+    border-left: 4px solid #3498db;
+}
+
+.loading-spinner {
+    display: none;
+    margin-left: 10px;
+}
+
+.fetch-actions {
+    margin-bottom: 20px;
+}
+
+.status-badge {
+    font-size: 0.8rem;
+}
+
+.status-success {
+    background-color: #28a745;
+}
+
+.status-error {
+    background-color: #dc3545;
+}
+
+.status-partial {
+    background-color: #ffc107;
+}
+
+.config-warning {
+    color: #856404;
+    background-color: #fff3cd;
+    border-color: #ffeeba;
+    padding: 0.75rem 1.25rem;
+    margin-bottom: 1rem;
+    border: 1px solid transparent;
+    border-radius: 0.25rem;
+}
+
+.fetch-summary {
+    margin-bottom: 15px;
+}
+
+.collapse-toggle:hover {
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+pre.json-content {
+    max-height: 300px;
+    overflow-y: auto;
+    background-color: #f8f9fa;
+    padding: 10px;
+    border-radius: 4px;
+}
