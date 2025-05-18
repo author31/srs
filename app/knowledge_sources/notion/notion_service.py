@@ -1,154 +1,104 @@
 import json
 import logging
+
 import httpx
 from pydantic import ValidationError
-
-from app.database import get_db_session
+from app.knowledge_sources import notion
 from app.knowledge_sources.notion import schemas
-from app.services import config_service
+from app.exceptions import SRSException
 
 logger = logging.getLogger(__name__)
 
+TIMEOUT = 10.0
 NOTION_BASE_URL = "https://api.notion.com/v1"
-SEARCH_ENDPOINT = NOTION_BASE_URL + "/search"
 
-def construct_headers():
-    db = get_db_session()
-    api_key = config_service.get_config_value(db, "notion_api_key")
+def construct_headers(api_key: str):
     return {
         "Authorization": f"Bearer {api_key}",
         "Notion-Version": "2022-06-28",
         "Content-Type": "application/json",
     }
 
-async def query_notion_database(
-    database_id: str,
-    payload: dict | None = None,
-    timeout: float = 10.0,
-    headers = construct_headers(),
-) -> schemas.NotionResponse:
-    """
-    Query a Notion database and return a parsed Pydantic response.
-
-    :param database_id:   The Notion database ID to query.
-    :param payload:       Optional JSON body to send (e.g. filters, sorts).
-    :param timeout:       Request timeout in seconds.
-    :return:              Either ListResponse on 200, or ErrorResponse on 400/429.
-    """
-    url = f"{NOTION_BASE_URL}/databases/{database_id}/query"
-
+async def fetch_api(url: str, method: str, api_key: str,
+                    payload: dict | None = None, params: dict | None = None, timeout: float = TIMEOUT) -> dict:
     try:
-        async with httpx.AsyncClient() as client:
-            resp = await client.post(url, json=payload or {}, headers=headers, timeout=timeout)
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            resp = await client.request(url=url, method=method, json=payload or None, params=params or None, headers=construct_headers(api_key))
     except httpx.RequestError as e:
         # network-level errors
-        return schemas.ErrorResponse(
-            object="error",
-            status=0,
-            code="request_error",
-            message=str(e),
-        )
+        raise SRSException(code="network_error", message=str(e))
 
-    # parse known error cases explicitly
-    if resp.status_code == 429:
-        return schemas.ErrorResponse(**resp.json())
-    if resp.status_code == 400:
-        return schemas.ErrorResponse(**resp.json())
+    # any non-2xx status is an error
+    if not (200 <= resp.status_code < 300):
+        # try to extract code/message from body
+        text = resp.text or ""
+        try:
+            body = resp.json()
+            code = body.get("code", f"HTTP_{resp.status_code}")
+            message = body.get("message", text)
+        except (ValueError, json.JSONDecodeError):
+            code = f"HTTP_{resp.status_code}"
+            message = text
+        raise SRSException(code=code, message=message)
 
-    # for any other HTTP error, raise or wrap
-    resp.raise_for_status()
-
-    # at 200, parse into ListResponse
+     # parse 2xx JSON
     try:
-        return schemas.ListResponse(**resp.json())
-    except ValidationError as ve:
-        # if it somehow doesn't match the schema
-        return schemas.ErrorResponse(
-            object="error",
-            status=500,
-            code="validation_error",
-            message=str(ve),
-        )
+        return resp.json()
+    except (ValueError, json.JSONDecodeError) as e:
+        raise SRSException(code="invalid_json", message=str(e))
 
-async def fetch_all_blocks_recursive(block_id: str, headers: dict = construct_headers()):
+async def query_notion_database(
+    database_id: str,
+    api_key: str,
+    payload: dict | None = None,
+) -> schemas.NotionDatabaseQueryData | None:
     """
-    Recursively fetches all blocks starting from a given block ID.
-    If a block has children, it fetches them and adds them under a 'children' key.
+    tobefilled
     """
-    all_children= []
-    start_cursor= None
-    url = f"{NOTION_BASE_URL}/blocks/{block_id}/children"
-    async with httpx.AsyncClient() as client:
-        while True:
-            params = {}
-            if start_cursor:
-                params["start_cursor"] = start_cursor
-
-            try:
-                response = await client.get(url, headers=headers, params=params, timeout=30.0)
-                response.raise_for_status()
-                data = response.json()
-
-                results = data.get("results", [])
-                all_children.extend(results)
-
-                if not data.get("has_more"): break 
-
-                start_cursor = data.get("next_cursor")
-
-            except httpx.HTTPStatusError as e:
-                logger.error(f"HTTP error occurred: {e.response.status_code} - {e.response.text}")
-                break
-            except httpx.RequestError as e:
-                logger.error(f"Request error occurred: {e}")
-                break
-            except json.JSONDecodeError as e:
-                logger.error(f"Failed to decode JSON response: {e}")
-                break
-
-    processed_children = []
-    for child_block in all_children:
-        if child_block.get("has_more"): 
-            nested_children = await fetch_all_blocks_recursive(child_block["id"], headers)
-            child_block["children"] = nested_children
-            processed_children.append(child_block)
-            continue
-
-        processed_children.append(child_block)
-
-    return processed_children
-
-async def retrieve_content_by_id(page_id, headers=construct_headers()):
-    """
-    Fetches all blocks for a given Notion Page ID recursively.
-
-    Args:
-        page_id: The UUID of the Notion page.
-        api_key: Optional Notion API key. If None, reads from NOTION_API_KEY env var.
-
-    Returns:
-        A dictionary representing the PageContent, containing the page_id
-        and a list of top-level blocks with nested children.
-        Returns an empty structure on failure.
-    """
+    url = f"{NOTION_BASE_URL}/databases/{database_id}/query"
     try:
-        top_level_blocks = await fetch_all_blocks_recursive(page_id, headers)
-
-        page_content = {
-            "page_id": page_id,
-            "blocks": top_level_blocks,
-        }
-        return page_content
-
-    except ValueError as e:
-        logger.error(f"Configuration error: {e}")
-        return {"page_id": page_id, "blocks": [], "error": str(e)}
-    except Exception as e:
-        logger.error(f"An unexpected error occurred: {e}")
-        return {"page_id": page_id, "blocks": [], "error": f"Unexpected error: {e}"}
+        response =  await fetch_api(url=url, method="post", api_key=api_key, payload=payload)
+        return schemas.NotionDatabaseQueryData(**response)
+    except SRSException as e:
+        logger.error(f"Notion fetch children failed [{e.code}]: {e.message}")
+        return None
 
 
-def update_page_properties_by_id(page_id, headers=construct_headers()):
+async def fetch_flashcard_db(page_id: str, api_key: str) -> list[schemas.Flashcard] | None:
+    """
+    tobefilled
+    """
+    url = f"https://api.notion.com/v1/blocks/{page_id}/children"
+    try:
+        response = await fetch_api(url=url, method="GET", api_key=api_key)
+        block_children_data = schemas.NotionBlockChildrenData(**response)
+    except SRSException as e:
+        logger.error(f"Notion fetch db failed [{e.code}]: {e.message}")
+        return None
+
+    flashcard_child_db = list(filter(lambda x: hasattr(x, "child_database"), block_children_data.items))
+    if not flashcard_child_db:
+        return None
+
+    if len(flashcard_child_db)>1:
+        logger.warning("NotionTemplateError: There are more than 1 flashcard database, Getting the first database.")
+
+    if isinstance(flashcard_child_db, list):
+        flashcard_child_db = flashcard_child_db[0]
+
+    notion_db_query_data = await query_notion_database(database_id=flashcard_child_db.id, api_key=api_key)
+    if not notion_db_query_data:
+        return None
+
+    flashcards = [
+        schemas.Flashcard(**item.properties)
+        for item in notion_db_query_data.items
+    ]
+
+    return flashcards
+
+
+def update_page_properties_by_id(page_id, headers):
     """
     sample curl:
     curl https://api.notion.com/v1/pages/60bdc8bd-3880-44b8-a9cd-8a145b3ffbd7 \
@@ -162,4 +112,24 @@ def update_page_properties_by_id(page_id, headers=construct_headers()):
       }
     }'
     """
+
+async def fetch_flashcards(database_id: str, api_key: str):
+    payload={
+        "filter": {
+          "property": "isProcessed",
+          "checkbox": {
+            "equals": False
+          }
+        }
+    }
+
+    result = await query_notion_database(database_id=database_id, payload=payload, api_key=api_key)
+    if result.status != 200:
+        logger.error(f"Error raised while fetching: {result.message}")
+        return
+
+    if isinstance(result, schemas.ListResponse):
+        logger.info(f"Fetched {len(result.items)} from Notion.")
+        for page in result.items:
+            print(page)
 
